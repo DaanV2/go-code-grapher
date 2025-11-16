@@ -1,0 +1,42 @@
+# This is a basic workflow to help you get started with Actions
+name: ⚙️ CI
+env:
+  FORCE_COLOR: true
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  merge_group:
+
+jobs:
+  checks:
+    name: 📋 Checks ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: 🏗️ Setup Golang
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./go.mod
+
+      - name: 🛠️ Build
+        run: go build ./...
+
+      - name: 🧪 Run Tests
+        run: go test ./... --cover -coverprofile=reports/coverage
+
+      - name: 🔍 Run linting
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
