@@ -1,25 +1,23 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
+	"path/filepath"
+	"slices"
+	"strings"
+
 	"github.com/daanv2/go-code-grapher/pkg/ast"
 	"github.com/daanv2/go-code-grapher/pkg/extensions/xos"
+	"github.com/daanv2/go-code-grapher/pkg/extensions/xregexp"
+	"github.com/daanv2/go-code-grapher/pkg/extensions/xslices"
 	"github.com/spf13/cobra"
 )
 
 // importsCmd represents the imports command
 var importsCmd = &cobra.Command{
 	Use:   "imports",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	RunE: GraphImports,
+	Short: "generate graphs of imports between packages",
+	Long:  `generate graphs of imports between packages`,
+	RunE:  GraphImports,
 }
 
 func init() {
@@ -35,19 +33,99 @@ func init() {
 	// is called directly, e.g.:
 	// importsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	structsCmd.Flags().BoolP("recursive", "r", true, "Recursively scan directories for Go files")
-	structsCmd.Flags().StringArrayP("dir", "p", []string{"."}, "The directory to parse and consume")
+	importsCmd.Flags().BoolP("recursive", "r", true, "Recursively scan directories for Go files")
+	importsCmd.Flags().StringArrayP("dir", "p", []string{"."}, "The directory to parse and consume")
+	importsCmd.Flags().StringArray("filter-packages", []string{}, "The regex pattern to filter packages by, if empty all packages are allowed")
+	importsCmd.Flags().StringArray("filter-imports", []string{}, "The regex pattern to filter imports by, if empty all imports are allowed")
+	importsCmd.Flags().Bool("filter-dirs", true, "Filters out any package that was not in the provided directories")
 }
 
 func GraphImports(cmd *cobra.Command, args []string) error {
 	recursive, _ := cmd.Flags().GetBool("recursive")
 	dirs, _ := cmd.Flags().GetStringArray("dir")
 
+	// Collect
 	col := ast.NewImportCollector()
 	for file := range xos.AllGoFiles(dirs, recursive) {
 		err := col.Collect(file)
 		if err != nil {
 			return err
+		}
+	}
+
+	// Clean
+	err := cleanImports(col, dirs, cmd)
+	if err != nil {
+		return err
+	}
+
+	// Graph
+	for pkg, imps := range col.Imports() {
+		cmd.Printf("Package: %s\n", pkg)
+		for _, imp := range imps {
+			cmd.Printf("  imports: %s\n", imp)
+		}
+	}
+
+	return nil
+}
+
+func cleanImports(col *ast.ImportCollector, dirs []string, cmd *cobra.Command) error {
+	// Filter Packages
+	pks, _ := cmd.Flags().GetStringArray("filter-packages")
+	pkgfilter, err := xregexp.FromPatterns(pks)
+	if err != nil {
+		return err
+	}
+
+	if pkgfilter.Len() > 0 {
+		for pack := range col.Imports() {
+			if !pkgfilter.Match(pack) {
+				delete(col.Imports(), pack)
+			}
+		}
+	}
+
+	// Filter Imports
+	imps, _ := cmd.Flags().GetStringArray("filter-imports")
+	impfilter, err := xregexp.FromPatterns(imps)
+	if err != nil {
+		return err
+	}
+	if impfilter.Len() > 0 {
+		for pack, imports := range col.Imports() {
+			col.Imports()[pack] = impfilter.Filter(imports)
+		}
+	}
+
+	// Filter Dirs
+	filterDirs, _ := cmd.Flags().GetBool("filter-dirs")
+	if filterDirs {
+		keep := make(map[string]struct{})
+		dirs, err = xslices.MapE(dirs, filepath.Abs)
+		if err != nil {
+			return err
+		}
+
+		for dir, packages := range col.DirPackages() {
+			dir, err = filepath.Abs(dir)
+			if err != nil {
+				return err
+			}
+
+			if slices.ContainsFunc(dirs, func(d string) bool {
+				return strings.HasPrefix(dir, d)
+			}) {
+				for _, p := range packages {
+					keep[p] = struct{}{}
+				}
+			}
+		}
+
+		for pack := range col.Imports() {
+			if _, ok := keep[pack]; !ok {
+				delete(col.Imports(), pack)
+			}
 		}
 	}
 

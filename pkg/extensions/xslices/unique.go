@@ -12,7 +12,7 @@ func Unique[S ~[]E, E comparable](slice S) S {
 		result := make(S, 0, len(slice))
 
 		for _, v := range slice {
-			if !slices.Contains(slice, v) {
+			if !slices.Contains(result, v) {
 				result = append(result, v)
 			}
 		}

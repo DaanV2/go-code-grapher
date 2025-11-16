@@ -22,9 +22,13 @@ func GetFiles(dir string) ([]string, error) {
 	return files, nil
 }
 
-func AllFiles(dirs []string, recurse bool) iter.Seq[string] {
+func AllFiles(dirs []string, recursive bool) iter.Seq[string] {
 	return func(yield func(string) bool) {
-		for _, dir := range dirs {
+		todo := make([]string, 0, len(dirs))
+		todo = append(todo, dirs...)
+
+		for i := 0; i < len(todo); i++ {
+			dir := todo[i]
 			entries, err := os.ReadDir(dir)
 			if err != nil {
 				continue
@@ -32,8 +36,8 @@ func AllFiles(dirs []string, recurse bool) iter.Seq[string] {
 			for _, entry := range entries {
 				p := filepath.Join(dir, entry.Name())
 				if entry.IsDir() {
-					if recurse {
-						dirs = append(dirs, p)
+					if recursive {
+						todo = append(todo, p)
 					}
 				} else {
 					if !yield(p) {
@@ -45,9 +49,9 @@ func AllFiles(dirs []string, recurse bool) iter.Seq[string] {
 	}
 }
 
-func AllGoFiles(dirs []string, recurse bool) iter.Seq[string] {
+func AllGoFiles(dirs []string, recursive bool) iter.Seq[string] {
 	return func(yield func(string) bool) {
-		for file := range AllFiles(dirs, recurse) {
+		for file := range AllFiles(dirs, recursive) {
 			if filepath.Ext(file) == ".go" {
 				if !yield(file) {
 					return
