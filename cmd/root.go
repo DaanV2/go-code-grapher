@@ -18,9 +18,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return logging.ApplyLoggerFlags(cmd, args)
-	},
+	PersistentPreRunE: logging.ApplyLoggerFlags,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

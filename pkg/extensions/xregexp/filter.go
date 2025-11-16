@@ -16,6 +16,7 @@ func FromPatterns(patterns []string) (*Filter, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return f, nil
 }
 
@@ -68,5 +69,6 @@ func (f *Filter) Filter(items []string) []string {
 			filtered = append(filtered, item)
 		}
 	}
+
 	return filtered
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func GetFiles(dir string) ([]string, error) {
-	var files []string
+	files := make([]string, 0, 10)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -19,6 +19,7 @@ func GetFiles(dir string) ([]string, error) {
 
 		files = append(files, filepath.Join(dir, entry.Name()))
 	}
+
 	return files, nil
 }
 

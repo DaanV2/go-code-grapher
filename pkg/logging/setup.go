@@ -19,7 +19,8 @@ func Flags(pflags *pflag.FlagSet) {
 	pflags.Bool("log-report-timestamp", true, "Whenever or not to output timestamps")
 	pflags.String("log-level", "info", "The debug level, levels are: debug, info, warn, error, fatal")
 	pflags.String("log-format", "text", "The text format of the logger")
-	pflags.String("log-file", "", "The text format of the logger")}
+	pflags.String("log-file", "", "The text format of the logger")
+}
 
 // ApplyLoggerFlags configures the logger based on command line flags.
 func ApplyLoggerFlags(cmd *cobra.Command, args []string) error {
@@ -68,6 +69,7 @@ func ApplyLoggerFlags(cmd *cobra.Command, args []string) error {
 	logger := log.NewWithOptions(w, logOptions)
 	logger.SetStyles(CreateStyle())
 	log.SetDefault(logger)
+
 	return nil
 }
 

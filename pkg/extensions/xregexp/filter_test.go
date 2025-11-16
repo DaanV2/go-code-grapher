@@ -1,22 +1,23 @@
-package xregexp
+package xregexp_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/daanv2/go-code-grapher/pkg/extensions/xregexp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFilter_AddPatternAndMatch(t *testing.T) {
-	f := &Filter{}
+	f := &xregexp.Filter{}
 	require.NoError(t, f.AddPattern("foo"), "AddPattern should not fail")
 	assert.True(t, f.Match("foobar"), "Expected Match to return true for 'foobar'")
 	assert.False(t, f.Match("bar"), "Expected Match to return false for 'bar'")
 }
 
 func TestFilter_AddPatterns(t *testing.T) {
-	f := &Filter{}
+	f := &xregexp.Filter{}
 	patterns := []string{"foo", "bar"}
 	require.NoError(t, f.AddPatterns(patterns...), "AddPatterns should not fail")
 	assert.True(t, f.Match("foo"), "Expected Match to return true for 'foo'")
@@ -25,7 +26,7 @@ func TestFilter_AddPatterns(t *testing.T) {
 }
 
 func ExampleFilter_Match() {
-	f := &Filter{}
+	f := &xregexp.Filter{}
 	_ = f.AddPattern("foo")
 	_ = f.AddPattern("bar")
 	fmt.Println(f.Match("foo")) // true

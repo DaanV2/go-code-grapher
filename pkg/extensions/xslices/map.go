@@ -5,6 +5,7 @@ func Map[S any, T any](source []S, mapper func(S) T) []T {
 	for i, v := range source {
 		result[i] = mapper(v)
 	}
+
 	return result
 }
 
@@ -17,5 +18,6 @@ func MapE[S any, T any](source []S, mapper func(S) (T, error)) ([]T, error) {
 			return nil, err
 		}
 	}
+
 	return result, nil
 }

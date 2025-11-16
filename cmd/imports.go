@@ -3,6 +3,7 @@ package cmd
 import (
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/daanv2/go-code-grapher/pkg/ast"
@@ -34,34 +35,44 @@ func init() {
 	// importsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	importsCmd.Flags().BoolP("recursive", "r", true, "Recursively scan directories for Go files")
-	importsCmd.Flags().StringArrayP("dir", "p", []string{"."}, "The directory to parse and consume")
+	importsCmd.Flags().StringArrayP("dir", "d", []string{"."}, "The directory to parse and consume")
+	importsCmd.Flags().String("mod-file", "go.mod", "The go.mod file to read the module path from")
+
+	// filters
 	importsCmd.Flags().StringArray("filter-packages", []string{}, "The regex pattern to filter packages by, if empty all packages are allowed")
 	importsCmd.Flags().StringArray("filter-imports", []string{}, "The regex pattern to filter imports by, if empty all imports are allowed")
 	importsCmd.Flags().Bool("filter-dirs", true, "Filters out any package that was not in the provided directories")
+	
 }
 
 func GraphImports(cmd *cobra.Command, args []string) error {
 	recursive, _ := cmd.Flags().GetBool("recursive")
 	dirs, _ := cmd.Flags().GetStringArray("dir")
+	modFile, _ := cmd.Flags().GetString("mod-file")
 
 	// Collect
-	col := ast.NewImportCollector()
+	col, err := ast.NewImportCollector(modFile)
+	if err != nil {
+		return err
+	}
+	
 	for file := range xos.AllGoFiles(dirs, recursive) {
-		err := col.Collect(file)
+		err = col.Collect(file)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Clean
-	err := cleanImports(col, dirs, cmd)
+	err = cleanImports(col, dirs, cmd)
 	if err != nil {
 		return err
 	}
 
-	// Graph
+	// Graph with fully qualified package names
 	for pkg, imps := range col.Imports() {
 		cmd.Printf("Package: %s\n", pkg)
+		sort.Strings(imps)
 		for _, imp := range imps {
 			cmd.Printf("  imports: %s\n", imp)
 		}
