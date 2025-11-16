@@ -27,6 +27,18 @@ func QualifyPackageName(moduleDir, moduleName, pkgDir, pkgName string) (string, 
 		built = moduleName + "/" + modulepath
 	}
 
+	// Ensure the package name is suffixed correctly (test packages end with _test)
+	// so we need to correct: github.com/org/repo/pkg to github.com/org/repo/pkg_test
+	if !strings.HasSuffix(built, pkgName) {
+		// Remove last element and append pkgName
+		index := strings.LastIndex(built, "/")
+		if index == -1 {
+			built = pkgName
+		} else {
+			built = built[:index+1] + pkgName
+		}
+	}
+
 	if filepath.Separator != '/' {
 		built = strings.ReplaceAll(built, string(filepath.Separator), "/")
 	}
