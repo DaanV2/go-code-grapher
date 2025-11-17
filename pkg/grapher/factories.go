@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	StateDiagramFactory = graphs.Register[statediagrams.Writer, statediagrams.Options]("state-diagrams").
+	StateDiagramFactory = graphs.Register[statediagrams.Writer, statediagrams.Options]("state-diagram").
 		With(mermaid.GRAPH_ID, mermaid.NewStateDiagramWriter)
 
 )

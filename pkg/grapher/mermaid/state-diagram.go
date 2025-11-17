@@ -2,7 +2,6 @@ package mermaid
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/daanv2/go-code-grapher/pkg/grapher/graphs"
 	statediagrams "github.com/daanv2/go-code-grapher/pkg/grapher/graphs/state-diagrams"
@@ -39,15 +38,15 @@ func (s *StateDiagramWriter) Close() error {
 
 // WriteState writes a state with the given id and description.
 func (s *StateDiagramWriter) WriteState(id, description string) error {
-	return s.Write(fmt.Sprintf(s.ident+"%q : %q", id, description))
+	return s.Writef(s.ident+"%q : %q", id, description)
 }
 
 func (s *StateDiagramWriter) WriteTransition(fromID, toID, label string) error {
 	if label == "" {
-		return s.Write(fmt.Sprintf(s.ident+"%q --> %q", fromID, toID))
+		return s.WriteLinef(s.ident+"%q --> %q", fromID, toID)
 	}
 
-	return s.Write(fmt.Sprintf(s.ident+"%q --> %q: %q", fromID, toID, label))
+	return s.WriteLinef(s.ident+"%q --> %q: %q", fromID, toID, label)
 }
 
 // Start implements statediagrams.Writer.

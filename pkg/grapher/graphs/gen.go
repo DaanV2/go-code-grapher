@@ -1,8 +1,9 @@
 package graphs
 
-import "io"
-
-
+import (
+	"fmt"
+	"io"
+)
 
 type BaseWriter interface {
 	io.Closer
@@ -19,18 +20,26 @@ type StringWriter struct {
 	Writer StringCloserWriter
 }
 
+func (s *StringWriter) Close() error {
+	return s.Writer.Close()
+}
+
 func (s *StringWriter) Write(content string) error {
 	_, err := s.Writer.WriteString(content)
 
 	return err
 }
 
-func (s *StringWriter) Close() error {
-	return s.Writer.Close()
-}
-
 func (s *StringWriter) WriteLine(content string) error {
 	return s.Write(content + "\n")
+}
+
+func (s *StringWriter) Writef(content string, a ...any) error {
+	return s.Write(fmt.Sprintf(content, a...))
+}
+
+func (s *StringWriter) WriteLinef(content string, a ...any) error {
+	return s.WriteLine(fmt.Sprintf(content, a...))
 }
 
 func (s *StringWriter) WriteLines(lines ...string) error {

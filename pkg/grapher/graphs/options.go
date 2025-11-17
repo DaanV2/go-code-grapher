@@ -18,7 +18,6 @@ type Options struct {
 }
 
 func AddFlags(set *pflag.FlagSet) {
-	set.StringToString("annotations", nil, "Annotations to add to the graph")
 	set.String("output", "", "Output filename for the graph, if empty, output to stdout")
 
 	graphers := AvailableGraphers()

@@ -15,7 +15,9 @@ func NewOptions() *Options {
 }
 
 func AddFlags(set *pflag.FlagSet) {
-	set.Bool("graph-only", false, "If true, only generate the graph without additional fluff around it (in case of mermaid, no markdown)")
+	graphs.AddBaseOptionsFlags(set)
+
+	set.Bool("graph-only", true, "If true, only generate the graph without additional fluff around it (in case of mermaid, no markdown)")
 }
 
 func (o *Options) ApplyFlags(set *pflag.FlagSet) error {

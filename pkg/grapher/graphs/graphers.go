@@ -58,6 +58,8 @@ func (g *Graphers[T, U]) WithOptionsFunc(f func() U) *Graphers[T, U] {
 	return g
 }
 
+// WithGrapher adds a new grapher function for the given graph type.
+//	graphType: should be a registered graph type (e.g., "mermaid", "dot", etc.)
 func (g *Graphers[T, U]) WithGrapher(graphType string, callback func(defOpts *Options, opts U, data T) error) *Graphers[T, U] {
 	_, exists := g.graphs[graphType]
 	if exists {
