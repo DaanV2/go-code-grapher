@@ -1,46 +1,73 @@
 package mermaid
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
+
+	"github.com/daanv2/go-code-grapher/pkg/grapher/graphs"
+	statediagrams "github.com/daanv2/go-code-grapher/pkg/grapher/graphs/state-diagrams"
 )
 
 type StateDiagramWriter struct {
-	w *os.File
+	graphs.StringWriter
+	opts  *statediagrams.Options
+	ident string
 }
 
-func NewStateDiagramWriter(filename string) (*StateDiagramWriter, error) {
-	filename = filepath.Clean(filename)
-	w, err := os.Create(filename)
-	if err != nil {
-		return nil, err
+func NewStateDiagramWriter(f graphs.StringCloserWriter, opts *statediagrams.Options) (statediagrams.Writer, error) {
+	if f == nil || opts == nil {
+		return nil, errors.New("file and options must be provided")
+	}
+
+	ident := "    "
+	if opts.GraphOnly {
+		ident = ""
 	}
 
 	return &StateDiagramWriter{
-		w: w,
+		graphs.StringWriter{
+			Writer: f,
+		},
+		opts,
+		ident,
 	}, nil
 }
 
 func (s *StateDiagramWriter) Close() error {
-	return s.w.Close()
-}
-
-func (s *StateDiagramWriter) Write(content string) error {
-	_, err := s.w.WriteString(content)
-
-	return err
+	return s.StringWriter.Close()
 }
 
 // WriteState writes a state with the given id and description.
 func (s *StateDiagramWriter) WriteState(id, description string) error {
-	return s.Write(fmt.Sprintf("    %q : %q", id, description))
+	return s.Write(fmt.Sprintf(s.ident+"%q : %q", id, description))
 }
 
 func (s *StateDiagramWriter) WriteTransition(fromID, toID, label string) error {
 	if label == "" {
-		return s.Write(fmt.Sprintf("    %q --> %q", fromID, toID))
+		return s.Write(fmt.Sprintf(s.ident+"%q --> %q", fromID, toID))
 	}
 
-	return s.Write(fmt.Sprintf("    %q --> %q: %q", fromID, toID, label))
+	return s.Write(fmt.Sprintf(s.ident+"%q --> %q: %q", fromID, toID, label))
+}
+
+// Start implements statediagrams.Writer.
+func (s *StateDiagramWriter) Start() error {
+	if s.opts.GraphOnly {
+		return nil
+	}
+
+	return s.WriteLines(
+		"```mermaid",
+		MakeMetadata(s.opts.Annotations),
+		"stateDiagram-v2",
+	)
+}
+
+// Finish implements statediagrams.Writer.
+func (s *StateDiagramWriter) Finish() error {
+	if s.opts.GraphOnly {
+		return nil
+	}
+
+	return s.Write("\n```")
 }

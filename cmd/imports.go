@@ -3,13 +3,14 @@ package cmd
 import (
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/daanv2/go-code-grapher/pkg/ast"
+	"github.com/daanv2/go-code-grapher/pkg/extensions/xflags"
 	"github.com/daanv2/go-code-grapher/pkg/extensions/xos"
 	"github.com/daanv2/go-code-grapher/pkg/extensions/xregexp"
 	"github.com/daanv2/go-code-grapher/pkg/extensions/xslices"
+	"github.com/daanv2/go-code-grapher/pkg/grapher"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +43,8 @@ func init() {
 	importsCmd.Flags().StringArray("filter-packages", []string{}, "The regex pattern to filter packages by, if empty all packages are allowed")
 	importsCmd.Flags().StringArray("filter-imports", []string{}, "The regex pattern to filter imports by, if empty all imports are allowed")
 	importsCmd.Flags().Bool("filter-dirs", true, "Filters out any package that was not in the provided directories")
-	
+
+	grapher.ImportsGraphers.AddFlags(importsCmd.Flags())
 }
 
 func GraphImports(cmd *cobra.Command, args []string) error {
@@ -69,16 +71,13 @@ func GraphImports(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Graph with fully qualified package names
-	for pkg, imps := range col.Imports() {
-		cmd.Printf("Package: %s\n", pkg)
-		sort.Strings(imps)
-		for _, imp := range imps {
-			cmd.Printf("  imports: %s\n", imp)
-		}
+	err = xflags.SetIfUnchanged(cmd.Flags(), "annotations", "title=" + col.ModuleName())
+	if err != nil {
+		return err
 	}
 
-	return nil
+	// Graph with fully qualified package names
+	return grapher.ImportsGraphers.Process(col, cmd.Flags())
 }
 
 func cleanImports(col *ast.ImportCollector, dirs []string, cmd *cobra.Command) error {

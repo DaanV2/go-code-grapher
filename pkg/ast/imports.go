@@ -39,6 +39,10 @@ func NewImportCollector(modulePath string) (*ImportCollector, error) {
 	}, nil
 }
 
+func (c *ImportCollector) ModuleName() string {
+	return c.moduleName
+}
+
 // Collect parses the given Go file and collects its imports.
 func (c *ImportCollector) Collect(filename string) error {
 	f, err := ParseFile(filename)
@@ -67,6 +71,7 @@ func (c *ImportCollector) Collect(filename string) error {
 }
 
 // Imports returns the collected imports mapping.
+//	Key: package name, Value: list of imported packages
 func (c *ImportCollector) Imports() map[string][]string {
 	return c.imports
 }
