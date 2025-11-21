@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -53,6 +54,7 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 				return nil, fmt.Errorf("found end marker without start marker at line %d", lineNum)
 			}
 			section.EndLine = lineNum
+
 			return section, nil
 		}
 	}
@@ -64,18 +66,20 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 	if section != nil {
 		return nil, fmt.Errorf("found start marker but no end marker for ID '%s'", id)
 	}
-	
+
 	return nil, fmt.Errorf("no embed section found with ID '%s'", id)
 }
 
 // ReplaceEmbedSection replaces the content of an embed section in a markdown file
 func ReplaceEmbedSection(inputPath, id, newContent string) error {
 	// Read the entire file
-	file, err := os.Open(inputPath)
+	file, err := os.Open(inputPath) // #nosec G304 -- inputPath is user-provided, which is expected
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 	
 	// Find the section
 	section, err := FindEmbedSection(file, id)
@@ -84,7 +88,11 @@ func ReplaceEmbedSection(inputPath, id, newContent string) error {
 	}
 	
 	// Read the file again to get all lines
-	file.Seek(0, 0)
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
+	
 	scanner := bufio.NewScanner(file)
 	var lines []string
 	lineNum := 0
@@ -98,7 +106,9 @@ func ReplaceEmbedSection(inputPath, id, newContent string) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 	
-	file.Close()
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("failed to close file: %w", err)
+	}
 	
 	// Build the new content
 	var result []string
@@ -123,11 +133,11 @@ func ReplaceEmbedSection(inputPath, id, newContent string) error {
 		output += "\n"
 	}
 	
-	err = os.WriteFile(inputPath, []byte(output), 0644)
+	err = os.WriteFile(inputPath, []byte(output), 0600) // #nosec G306 -- markdown files need to be readable
 	if err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -145,7 +155,7 @@ func WrapWithMarkers(id, content string) string {
 // ValidateID checks if an ID is valid (alphanumeric with hyphens and underscores)
 func ValidateID(id string) error {
 	if id == "" {
-		return fmt.Errorf("ID cannot be empty")
+		return errors.New("ID cannot be empty")
 	}
 	
 	matched, err := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, id)
@@ -154,8 +164,8 @@ func ValidateID(id string) error {
 	}
 	
 	if !matched {
-		return fmt.Errorf("ID must contain only alphanumeric characters, hyphens, and underscores")
+		return errors.New("ID must contain only alphanumeric characters, hyphens, and underscores")
 	}
-	
+
 	return nil
 }

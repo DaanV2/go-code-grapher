@@ -1,4 +1,4 @@
-package markdown
+package markdown_test
 
 import (
 	"os"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/daanv2/go-code-grapher/pkg/markdown"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,11 +30,11 @@ func TestValidateID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateID(tt.id)
+			err := markdown.ValidateID(tt.id)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -43,7 +44,7 @@ func TestWrapWithMarkers(t *testing.T) {
 	id := "test-diagram"
 	content := "```mermaid\ngraph TD\n    A --> B\n```"
 	
-	result := WrapWithMarkers(id, content)
+	result := markdown.WrapWithMarkers(id, content)
 	
 	assert.Contains(t, result, "<!-- mermaid-embed-start:test-diagram -->")
 	assert.Contains(t, result, "<!-- mermaid-embed-end:test-diagram -->")
@@ -101,15 +102,15 @@ content here
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.content)
-			section, err := FindEmbedSection(reader, tt.id)
+			section, err := markdown.FindEmbedSection(reader, tt.id)
 			
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				if tt.errMsg != "" {
 					assert.Contains(t, err.Error(), tt.errMsg)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, section)
 				assert.Equal(t, tt.id, section.ID)
 				assert.Greater(t, section.EndLine, section.StartLine)
@@ -137,16 +138,16 @@ graph TD
 Some text after.
 `
 	
-	err := os.WriteFile(testFile, []byte(originalContent), 0644)
+	err := os.WriteFile(testFile, []byte(originalContent), 0600)
 	require.NoError(t, err)
 	
-	newContent := WrapWithMarkers("architecture", "```mermaid\ngraph TD\n    New --> Content\n```")
+	newContent := markdown.WrapWithMarkers("architecture", "```mermaid\ngraph TD\n    New --> Content\n```")
 	
-	err = ReplaceEmbedSection(testFile, "architecture", newContent)
+	err = markdown.ReplaceEmbedSection(testFile, "architecture", newContent)
 	require.NoError(t, err)
 	
 	// Read the file back
-	result, err := os.ReadFile(testFile)
+	result, err := os.ReadFile(testFile) // #nosec G304 -- test file path is controlled
 	require.NoError(t, err)
 	
 	resultStr := string(result)
@@ -164,10 +165,10 @@ func TestReplaceEmbedSection_NonExistentFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "nonexistent.md")
 	
-	newContent := WrapWithMarkers("test", "content")
-	err := ReplaceEmbedSection(testFile, "test", newContent)
+	newContent := markdown.WrapWithMarkers("test", "content")
+	err := markdown.ReplaceEmbedSection(testFile, "test", newContent)
 	
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to open file")
 }
 
@@ -178,12 +179,12 @@ func TestReplaceEmbedSection_NonExistentSection(t *testing.T) {
 	originalContent := `# Test
 No markers here
 `
-	err := os.WriteFile(testFile, []byte(originalContent), 0644)
+	err := os.WriteFile(testFile, []byte(originalContent), 0600)
 	require.NoError(t, err)
 	
-	newContent := WrapWithMarkers("test", "content")
-	err = ReplaceEmbedSection(testFile, "test", newContent)
+	newContent := markdown.WrapWithMarkers("test", "content")
+	err = markdown.ReplaceEmbedSection(testFile, "test", newContent)
 	
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no embed section found")
 }
