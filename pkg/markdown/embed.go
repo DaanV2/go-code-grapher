@@ -133,7 +133,7 @@ func ReplaceEmbedSection(inputPath, id, newContent string) error {
 		output += "\n"
 	}
 	
-	err = os.WriteFile(inputPath, []byte(output), 0600) // #nosec G306 -- markdown files need to be readable
+	err = os.WriteFile(inputPath, []byte(output), 0644) // #nosec G306 -- markdown files are documentation, readable by all
 	if err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}

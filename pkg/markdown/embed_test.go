@@ -138,7 +138,7 @@ graph TD
 Some text after.
 `
 	
-	err := os.WriteFile(testFile, []byte(originalContent), 0600)
+	err := os.WriteFile(testFile, []byte(originalContent), 0644) // #nosec G306 -- test file in temp directory
 	require.NoError(t, err)
 	
 	newContent := markdown.WrapWithMarkers("architecture", "```mermaid\ngraph TD\n    New --> Content\n```")
@@ -147,7 +147,7 @@ Some text after.
 	require.NoError(t, err)
 	
 	// Read the file back
-	result, err := os.ReadFile(testFile) // #nosec G304 -- test file path is controlled
+	result, err := os.ReadFile(testFile) // #nosec G304 -- test file path is controlled by t.TempDir()
 	require.NoError(t, err)
 	
 	resultStr := string(result)
@@ -179,7 +179,7 @@ func TestReplaceEmbedSection_NonExistentSection(t *testing.T) {
 	originalContent := `# Test
 No markers here
 `
-	err := os.WriteFile(testFile, []byte(originalContent), 0600)
+	err := os.WriteFile(testFile, []byte(originalContent), 0644) // #nosec G306 -- test file in temp directory
 	require.NoError(t, err)
 	
 	newContent := markdown.WrapWithMarkers("test", "content")

@@ -75,7 +75,7 @@ func DefaultOptions(set *pflag.FlagSet) (Options, error) {
 	// Validate markdown embedding options
 	if opts.MarkdownEmbedInto != "" {
 		if opts.MarkdownEmbedID == "" {
-			return opts, errors.New("markdown-embed-id is required when markdown-embed-into is specified")
+			return opts, errors.New("flag --markdown-embed-id is required when --markdown-embed-into is specified")
 		}
 		if err := markdown.ValidateID(opts.MarkdownEmbedID); err != nil {
 			return opts, fmt.Errorf("invalid markdown-embed-id: %w", err)
@@ -111,7 +111,7 @@ func (opts *Options) FinalizeMarkdownEmbed() error {
 	}
 	
 	if opts.embedBuffer == nil {
-		return errors.New("embed buffer is nil")
+		return errors.New("failed to embed markdown: content buffer was not properly initialized")
 	}
 	
 	// Get the generated content
