@@ -60,10 +60,35 @@ func TestFindEmbedSection(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name: "valid section",
+			name: "valid section with end marker",
 			content: `# Test
 <!-- mermaid-embed-start:test -->
 content here
+<!-- mermaid-embed-end:test -->
+more content`,
+			id:      "test",
+			wantErr: false,
+		},
+		{
+			name: "valid section without end marker (code block closing)",
+			content: `# Test
+<!-- mermaid-embed-start:test -->
+` + "```mermaid" + `
+graph TD
+    A --> B
+` + "```" + `
+more content`,
+			id:      "test",
+			wantErr: false,
+		},
+		{
+			name: "section with code block and explicit end marker",
+			content: `# Test
+<!-- mermaid-embed-start:test -->
+` + "```mermaid" + `
+graph TD
+    A --> B
+` + "```" + `
 <!-- mermaid-embed-end:test -->
 more content`,
 			id:      "test",
@@ -80,22 +105,13 @@ content here
 			errMsg:  "no embed section found",
 		},
 		{
-			name: "missing end marker",
+			name: "missing end marker and no code block",
 			content: `# Test
 <!-- mermaid-embed-start:test -->
 content here`,
 			id:      "test",
 			wantErr: true,
-			errMsg:  "no end marker",
-		},
-		{
-			name: "missing start marker",
-			content: `# Test
-content here
-<!-- mermaid-embed-end:test -->`,
-			id:      "test",
-			wantErr: true,
-			errMsg:  "end marker without start marker",
+			errMsg:  "no end marker or closing code block",
 		},
 	}
 
@@ -187,4 +203,44 @@ No markers here
 	
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no embed section found")
+}
+
+func TestReplaceEmbedSection_WithoutEndMarker(t *testing.T) {
+	// Test replacing a section that only has start marker and relies on code block closing
+	tmpDir := t.TempDir()
+	
+	testFile := filepath.Join(tmpDir, "test.md")
+	originalContent := `# Test Document
+
+Some text before.
+
+<!-- mermaid-embed-start:architecture -->
+` + "```mermaid" + `
+graph TD
+    Old --> Content
+` + "```" + `
+
+Some text after.
+`
+	
+	err := os.WriteFile(testFile, []byte(originalContent), 0644) // #nosec G306 -- test file in temp directory
+	require.NoError(t, err)
+	
+	newContent := markdown.WrapWithMarkers("architecture", "```mermaid\ngraph TD\n    New --> Content\n```")
+	
+	err = markdown.ReplaceEmbedSection(testFile, "architecture", newContent)
+	require.NoError(t, err)
+	
+	// Read the file back
+	result, err := os.ReadFile(testFile) // #nosec G304 -- test file path is controlled by t.TempDir()
+	require.NoError(t, err)
+	
+	resultStr := string(result)
+	
+	// Verify the content was replaced
+	assert.Contains(t, resultStr, "New --> Content")
+	assert.NotContains(t, resultStr, "Old --> Content")
+	assert.Contains(t, resultStr, "Some text before.")
+	assert.Contains(t, resultStr, "Some text after.")
+	assert.Contains(t, resultStr, "<!-- mermaid-embed-start:architecture -->")
 }

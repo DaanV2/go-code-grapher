@@ -27,6 +27,9 @@ type EmbedSection struct {
 }
 
 // FindEmbedSection finds the embed section with the given ID in the reader
+// It looks for the start marker, then finds either:
+// 1. The matching end marker (if present), or
+// 2. The second occurrence of ``` (closing the mermaid code block)
 func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 	startMarker := fmt.Sprintf(StartMarkerTemplate, id)
 	endMarker := fmt.Sprintf(EndMarkerTemplate, id)
@@ -34,12 +37,14 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
 	var section *EmbedSection
+	var foundFirstCodeBlock bool
 	
 	for scanner.Scan() {
 		line := scanner.Text()
 		lineNum++
+		trimmedLine := strings.TrimSpace(line)
 		
-		if strings.TrimSpace(line) == startMarker {
+		if trimmedLine == startMarker {
 			if section != nil {
 				return nil, fmt.Errorf("found nested start marker at line %d", lineNum)
 			}
@@ -49,13 +54,35 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 				StartMarker: startMarker,
 				EndMarker:   endMarker,
 			}
-		} else if strings.TrimSpace(line) == endMarker {
-			if section == nil {
-				return nil, fmt.Errorf("found end marker without start marker at line %d", lineNum)
-			}
+			foundFirstCodeBlock = false
+
+			continue
+		}
+		
+		if section == nil {
+			continue
+		}
+
+		
+		// We're inside a section, look for the end
+		if trimmedLine == endMarker {
+			// Found explicit end marker
 			section.EndLine = lineNum
 
 			return section, nil
+		}
+		
+		if strings.HasPrefix(trimmedLine, "```") {
+			// Found a code block delimiter
+			if !foundFirstCodeBlock {
+				// This is the opening ```
+				foundFirstCodeBlock = true
+			} else {
+				// This is the closing ``` - end of code block
+				section.EndLine = lineNum
+
+				return section, nil
+			}
 		}
 	}
 	
@@ -64,7 +91,7 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 	}
 	
 	if section != nil {
-		return nil, fmt.Errorf("found start marker but no end marker for ID '%s'", id)
+		return nil, fmt.Errorf("found start marker but no end marker or closing code block for ID '%s'", id)
 	}
 
 	return nil, fmt.Errorf("no embed section found with ID '%s'", id)

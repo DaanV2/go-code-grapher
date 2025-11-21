@@ -8,8 +8,9 @@ The markdown embedding feature allows you to mark specific sections in your mark
 
 ## Annotation Strategy
 
-To mark a mermaid diagram for automatic updates, wrap it with HTML comment markers:
+To mark a mermaid diagram for automatic updates, you need to add a start marker before the code block. The end marker is **optional** - if not provided, the system will automatically detect the end of the code block by finding the closing ``` after the start marker.
 
+**With end marker (explicit):**
 ```markdown
 <!-- mermaid-embed-start:your-diagram-id -->
 ```mermaid
@@ -20,18 +21,30 @@ graph TD
 <!-- mermaid-embed-end:your-diagram-id -->
 ```
 
+**Without end marker (automatic detection):**
+```markdown
+<!-- mermaid-embed-start:your-diagram-id -->
+```mermaid
+graph TD
+    A[Start] --> B[Process]
+    B --> C[End]
+```
+```
+
 ### Marker Format
 
-- **Start marker**: `<!-- mermaid-embed-start:ID -->`
-- **End marker**: `<!-- mermaid-embed-end:ID -->`
+- **Start marker**: `<!-- mermaid-embed-start:ID -->` (required)
+- **End marker**: `<!-- mermaid-embed-end:ID -->` (optional)
 - **ID**: Must be alphanumeric with optional hyphens and underscores (e.g., `architecture`, `import-flow`, `data_model`)
 
 ### Rules
 
-1. Each section must have matching start and end markers with the same ID
-2. Sections cannot be nested
-3. IDs must be unique within a markdown file
-4. IDs can only contain: letters, numbers, hyphens (-), and underscores (_)
+1. Each section must have a start marker with a unique ID
+2. End markers are optional - if not provided, the system will find the closing ``` of the code block
+3. If an end marker is provided, it must match the ID of the start marker
+4. Sections cannot be nested
+5. IDs must be unique within a markdown file
+6. IDs can only contain: letters, numbers, hyphens (-), and underscores (_)
 
 ## Usage
 
@@ -61,7 +74,7 @@ go-code-grapher imports \
 
 ### Example Workflow
 
-1. Add markers to your markdown file:
+1. Add a start marker to your markdown file (end marker is optional):
 
 ```markdown
 # Architecture
@@ -73,7 +86,6 @@ Our system architecture:
 graph TD
     OldDiagram[This will be replaced]
 ```
-<!-- mermaid-embed-end:architecture -->
 
 More documentation here...
 ```
@@ -87,7 +99,7 @@ go-code-grapher imports \
   --dir ./pkg
 ```
 
-3. The content between the markers will be replaced with the newly generated diagram
+3. The content from the start marker to either the end marker (if present) or the closing ``` will be replaced with the newly generated diagram. The output will always include both start and end markers.
 
 ## Notes
 
