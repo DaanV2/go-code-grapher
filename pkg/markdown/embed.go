@@ -62,7 +62,6 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 		if section == nil {
 			continue
 		}
-
 		
 		// We're inside a section, look for the end
 		if trimmedLine == endMarker {
@@ -72,13 +71,14 @@ func FindEmbedSection(r io.Reader, id string) (*EmbedSection, error) {
 			return section, nil
 		}
 		
-		if strings.HasPrefix(trimmedLine, "```") {
+		// Check for code block delimiter - must be exactly ``` or start with ```mermaid
+		if trimmedLine == "```" || strings.HasPrefix(trimmedLine, "```mermaid") {
 			// Found a code block delimiter
 			if !foundFirstCodeBlock {
-				// This is the opening ```
+				// This is the opening ```mermaid
 				foundFirstCodeBlock = true
-			} else {
-				// This is the closing ``` - end of code block
+			} else if trimmedLine == "```" {
+				// This is the closing ``` (must be exactly ``` without language spec)
 				section.EndLine = lineNum
 
 				return section, nil
