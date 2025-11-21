@@ -16,6 +16,11 @@ var ImportsGraphers = graphs.NewGraphers[*ast.ImportCollector, *statediagrams.Op
 		if err != nil {
 			return fmt.Errorf("failed to create state diagram grapher: %w", err)
 		}
+		
+		// Start the diagram
+		if err := grapher.Start(); err != nil {
+			return fmt.Errorf("failed to start diagram: %w", err)
+		}
 
 		for pack, imports := range col.Imports() {
 			for _, imp := range imports {
@@ -25,6 +30,11 @@ var ImportsGraphers = graphs.NewGraphers[*ast.ImportCollector, *statediagrams.Op
 				}
 			}
 		}
+		
+		// Finish the diagram
+		if err := grapher.Finish(); err != nil {
+			return fmt.Errorf("failed to finish diagram: %w", err)
+		}
 
-		return nil
+		return grapher.Close()
 	})

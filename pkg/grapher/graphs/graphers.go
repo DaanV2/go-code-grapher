@@ -49,7 +49,13 @@ func (g *Graphers[T, U]) Process(data T, set *pflag.FlagSet) error {
 		return errors.New("unknown graph type: " + defOpts.GraphType + " (available: " + graphs + ")")
 	}
 
-	return grapherFunc(&defOpts, opts, data)
+	err = grapherFunc(&defOpts, opts, data)
+	if err != nil {
+		return err
+	}
+	
+	// Finalize markdown embedding if configured
+	return defOpts.FinalizeMarkdownEmbed()
 }
 
 func (g *Graphers[T, U]) WithOptionsFunc(f func() U) *Graphers[T, U] {
